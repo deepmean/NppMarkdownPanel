@@ -1,0 +1,55 @@
+name: ARM64 build
+
+# Builds a native Windows-on-ARM64 package of NppMarkdownPanel.
+#
+# The plugin is a .NET Framework C# WinForms DLL that Notepad++ loads as a
+# native DLL. Its x86/x64 export layer (UnmanagedExports / DllExport) is
+# x86/x64-only and cannot emit ARM64 exports, so on ARM64 a small native shim
+# (arm64/NppShim.cpp) exports the six Notepad++ entry points and hosts the CLR.
+#
+# No extra runtime dependency: .NET Framework 4.8.1 ships natively with
+# Windows 11 on ARM64, so users install nothing.
+#
+# The x86/x64 release path (CI_build.yml) is untouched.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [arm64]
+    paths:
+      - 'arm64/**'
+      - 'NppMarkdownPanel/**'
+      - 'build-arm64.ps1'
+      - '.github/workflows/arm64-build.yml'
+
+jobs:
+  build-arm64:
+    runs-on: windows-11-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Report toolchain
+        shell: pwsh
+        run: |
+          "PROCESSOR_ARCHITECTURE = $env:PROCESSOR_ARCHITECTURE"
+          $k = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full' -ErrorAction SilentlyContinue
+          ".NET Framework = $($k.Version) (release $($k.Release))"
+          $lib = "${env:ProgramFiles(x86)}\Windows Kits\NETFXSDK\4.8.1\lib\um\arm64\mscoree.lib"
+          "arm64 mscoree.lib = $(Test-Path $lib)"
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v3
+
+      - name: Build ARM64 package
+        shell: pwsh
+        run: ./build-arm64.ps1 -Configuration Release -Version 0.9.3.0
+
+      - name: Upload ARM64 package
+        uses: actions/upload-artifact@v7
+        with:
+          name: NppMarkdownPanel_arm64
+          path: |
+            Release-arm64/*.zip
+            Release-arm64/managed-selftest.txt
+          if-no-files-found: error

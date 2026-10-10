@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  NppMarkdownPanel - ARM64 managed build.
+
+  This project produces the managed half of the ARM64 plugin. It is an
+  AnyCPU .NET Framework 4.7.2 assembly (the ARM64 CLR JITs the IL natively),
+  built alongside a small native ARM64 shim (see arm64/NppShim.cpp) that
+  Notepad++ loads and that hosts the CLR.
+
+  Why a separate project instead of another configuration of
+  NppMarkdownPanel.csproj: the x86/x64 build depends on
+  UnmanagedExports.Repack.Upgrade to synthesise native exports at build time.
+  That tooling only emits I386/AMD64/IA64 stubs and cannot be used for ARM64,
+  so on ARM64 the export layer is the native shim instead. Keeping the two
+  apart means neither build has to carry the other's machinery, and the
+  x86/x64 release path stays byte-for-byte untouched.
+-->
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{7C3E1A64-9F2B-4D58-A6E1-2B4C8D9E0F31}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>NppMarkdownPanel</RootNamespace>
+    <!-- Distinct from the native shim's name on purpose: the shim is
+         NppMarkdownPanel.dll (loaded by Notepad++) and this managed assembly is
+         NppMarkdownPanel.Managed.dll (loaded by the shim, by full path). -->
+    <AssemblyName>NppMarkdownPanel.Managed</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug-arm64\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>7.3</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release-arm64\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>7.3</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Entities\Settings.cs" />
+    <Compile Include="Entities\RenderResult.cs" />
+    <Compile Include="Forms\AboutForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\AboutForm.Designer.cs">
+      <DependentUpon>AboutForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\ActiveXScreenShotMaker.cs" />
+    <Compile Include="Forms\ClipboardHelper.cs" />
+    <Compile Include="Forms\DockingFormBase.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\DockingFormBase.Designer.cs">
+      <DependentUpon>DockingFormBase.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\IViewerInterface.cs" />
+    <Compile Include="Forms\MarkdownPreviewForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\MarkdownPreviewForm.Designer.cs">
+      <DependentUpon>MarkdownPreviewForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\SettingsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\SettingsForm.Designer.cs">
+      <DependentUpon>SettingsForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Generator\MarkdownService.cs" />
+    <Compile Include="Main.cs" />
+    <Compile Include="MarkdownPanelController.cs" />
+    <Compile Include="PluginUtils.cs" />
+    <Compile Include="Utils.cs" />
+    <Compile Include="Webbrowser\IE11WebbrowserControl.cs" />
+    <Compile Include="PluginInfrastructure\Arm64Exports.cs" />
+    <Compile Include="PluginInfrastructure\Arm64SelfTest.cs" />
+    <Compile Include="PluginInfrastructure\PluginAssemblyResolver.cs" />
+    <Compile Include="PluginInfrastructure\PluginDiagnostics.cs" />
+    <Compile Include="PluginInfrastructure\ClikeStringArray.cs" />
+    <Compile Include="PluginInfrastructure\Docking_h.cs" />
+    <Compile Include="PluginInfrastructure\GatewayDomain.cs" />
+    <Compile Include="PluginInfrastructure\IScintillaGateway.cs" />
+    <Compile Include="PluginInfrastructure\MenuCmdID_h.cs" />
+    <Compile Include="PluginInfrastructure\Msgs_h.cs" />
+    <Compile Include="PluginInfrastructure\NotepadPPGateway.cs" />
+    <Compile Include="PluginInfrastructure\NppPluginNETBase.cs" />
+    <Compile Include="PluginInfrastructure\NppPluginNETHelper.cs" />
+    <Compile Include="PluginInfrastructure\Preference_h.cs" />
+    <Compile Include="PluginInfrastructure\Resource_h.cs" />
+    <Compile Include="PluginInfrastructure\Scintilla_iface.cs" />
+    <Compile Include="PluginInfrastructure\ScintillaGateway.cs" />
+    <Compile Include="PluginInfrastructure\Win32.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Forms\AboutForm.resx">
+      <DependentUpon>AboutForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\MarkdownPreviewForm.resx">
+      <DependentUpon>MarkdownPreviewForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\SettingsForm.resx">
+      <DependentUpon>SettingsForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\markdown-16x16-solid.png" />
+    <None Include="Resources\markdown-16x16-solid.bmp" />
+    <None Include="Resources\markdown-16x16-solid-dark.png" />
+    <None Include="Resources\DownloadDocument_16x.png" />
+    <Content Include="Resources\Copy_16x_32.bmp" />
+    <Content Include="Resources\md.ico" />
+    <Content Include="Resources\Save_16x_32.bmp" />
+    <Content Include="style.css">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="style-dark.css">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <COMReference Include="SHDocVw">
+      <Guid>{EAB22AC0-30C1-11CF-A7EB-0000C05BAE0B}</Guid>
+      <VersionMajor>1</VersionMajor>
+      <VersionMinor>1</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MarkdigWrapper\MarkdigWrapper.csproj">
+      <Project>{00858d38-b221-40b2-90f4-e029a1affe5a}</Project>
+      <Name>MarkdigWrapper</Name>
+      <Private>False</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\PanelCommon\PanelCommon.csproj">
+      <Project>{a52a6264-26ec-4af6-9031-53b99ae4f65a}</Project>
+      <Name>PanelCommon</Name>
+      <Private>False</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\Webview2Viewer\Webview2Viewer.csproj">
+      <Project>{5EEC55BE-F283-4F9D-A2FD-F9050BD17B59}</Project>
+      <Name>Webview2Viewer</Name>
+      <Private>False</Private>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
