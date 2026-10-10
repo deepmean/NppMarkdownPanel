@@ -1,0 +1,76 @@
+name: ARM64 probe
+
+# Feasibility probe for a native Windows-on-ARM64 build of NppMarkdownPanel.
+#
+# The plugin is a .NET Framework C# WinForms DLL that Notepad++ loads as a
+# native DLL. Its current export layer (UnmanagedExports / DllExport) is
+# x86/x64 only, so it cannot produce ARM64 exports. This probe answers the
+# question that decides the replacement approach:
+#
+#   Can a native ARM64 DLL link the ARM64 mscoree.lib and host the
+#   .NET Framework v4 CLR, loading a managed assembly from a *subdirectory*
+#   (the Notepad++ plugin layout) rather than from next to the EXE?
+#
+# If this passes, the plugin can be ported to ARM64 with no runtime
+# dependency (no .NET 8 download). If it fails, that route is closed.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [arm64-probe]
+
+jobs:
+  probe:
+    runs-on: windows-11-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Report runner environment
+        shell: pwsh
+        run: |
+          "PROCESSOR_ARCHITECTURE = $env:PROCESSOR_ARCHITECTURE"
+          "OS = $([Environment]::OSVersion.VersionString)"
+          $k = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full' -ErrorAction SilentlyContinue
+          ".NET Framework Release = $($k.Release)"
+          ".NET Framework Version = $($k.Version)"
+          $fa = "$env:WINDIR\Microsoft.NET\FrameworkArm64\v4.0.30319"
+          "FrameworkArm64 present = $(Test-Path $fa)"
+          if (Test-Path $fa) {
+            foreach ($n in 'clr.dll','mscorlib.dll','csc.exe') {
+              $p = Join-Path $fa $n
+              if (Test-Path $p) {
+                $b = [IO.File]::ReadAllBytes($p)
+                $pe = [BitConverter]::ToInt32($b, 0x3C)
+                $m = [BitConverter]::ToUInt16($b, $pe + 4)
+                $arch = if ($m -eq 0xAA64) { 'ARM64' } elseif ($m -eq 0x8664) { 'AMD64' } elseif ($m -eq 0x14c) { 'I386' } else { "0x{0:X}" -f $m }
+                "  $n -> $arch"
+              } else { "  $n -> MISSING" }
+            }
+          }
+
+      - name: Locate arm64 mscoree.lib
+        shell: pwsh
+        run: |
+          $roots = @("${env:ProgramFiles(x86)}\Windows Kits\NETFXSDK", "$env:ProgramFiles\Windows Kits\NETFXSDK")
+          foreach ($r in $roots) {
+            "--- $r (exists: $(Test-Path $r))"
+            if (Test-Path $r) {
+              Get-ChildItem $r -Directory | ForEach-Object {
+                $lib = Join-Path $_.FullName 'Lib\um\arm64\mscoree.lib'
+                "    $($_.Name)  arm64/mscoree.lib: $(Test-Path $lib)"
+              }
+            }
+          }
+
+      - name: Run ARM64 CLR host probe
+        shell: cmd
+        run: ci\arm64-probe.cmd
+
+      - name: Upload probe output
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: arm64-probe-output
+          path: out/**
+          if-no-files-found: warn
